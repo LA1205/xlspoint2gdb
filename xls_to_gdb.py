@@ -68,3 +68,11 @@ with arcpy.da.SearchCursor(in_point_feature, ["SHAPE@", group_field]) as cursor:
             groups[group_value] = []
         # 将点添加到该组的列表中
         groups[group_value].append(row[0].getPart(0))
+# 创建一个插入游标来创建多边形要素
+with arcpy.da.InsertCursor(out_polygon_feature, ["SHAPE@"]) as cursor:
+    for group in groups.values():
+        # 创建一个多边形几何对象
+        polygon = arcpy.Polygon(arcpy.Array(group))
+        # 插入新的多边形要素
+        cursor.insertRow([polygon])
+print("Polygon feature : " + out_polygon_feature + " has been generated!")
