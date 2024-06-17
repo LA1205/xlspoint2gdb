@@ -18,7 +18,7 @@ outLocation = work_folder_path + "\\" + out_gdbName
 print("Importing tables to gdb: " + outLocation)
 arcpy.TableToGeodatabase_conversion(tables, outLocation)
 
-# Gnerate a feature class from x and y coordinate in table
+# Gnerate a point feature class from x and y coordinate in table
 arcpy.env.workspace = outLocation
 gdb_tableName = str(tables[0])[:-4] # obtain the name of table
 in_table = outLocation + "\\" + gdb_tableName
@@ -37,27 +37,34 @@ arcpy.management.XYTableToPoint(
 )
 print("Importing done!")
 
-# Join the feature class with forest compartment
-# The qualifiedFieldNames environment is used by Copy Features when persisting 
-# the join field names.
-"""
-arcpy.env.qualifiedFieldNames = False
-inFeatures = out_feature_class
-joinTable = gdb_tableName
-joinField = "OBJECTID"
-outFeature = out_feature_class + "_joined"
-print("Joining feature class: " + inFeatures +"with table: " + joinTable + "by field: " + joinField)
-point_joined_table = arcpy.management.AddJoin(
-    inFeatures, 
-    joinField, 
-    joinTable, 
-    joinField
+# Generate polygon feature class from point feature class
+out_path = outLocation
+out_polygon_feature = out_feature_class + "2plygo"
+geometry_type = "POLYGON"
+template = ""
+has_m = "DISABLED"
+has_z = "DISABLED"
+spatial_ref = arcpy.Describe(outLocation + "\\" + out_feature_class).spatialReference
+arcpy.CreateFeatureclass_management(
+    out_path, 
+    out_polygon_feature, 
+    geometry_type,
+    template,
+    has_m,
+    has_z,
+    spatial_ref
 )
-# Copy the layer to a new permanent feature class
-print("Start copying the joined layer to new permanent feature class...")
-arcpy.management.CopyFeatures(
-    point_joined_table, 
-    outFeature
-)
-print("The new feature class: " + outFeature + " is saved at: " + outLocation)
-"""
+# Create a searchcursor to obtain point feature 创建一个搜索游标来获取点要素
+in_point_feature = out_feature_class
+group_field = "groupfield" # <<<<<<set a field for grouping, may need replcaed by your own field name
+with arcpy.da.SearchCursor(in_point_feature, ["SHAPE@", group_field]) as cursor:
+    # Create a dictonary to store the point from each group 创建一个字典来存储每个组的点
+    groups = {}
+    for row in cursor:
+        # obtain the value in group_field
+        group_value = row[1]
+        # 如果该组还没有在字典中，则在字典中创建一个空列表
+        if group_value not in groups:
+            groups[group_value] = []
+        # 将点添加到该组的列表中
+        groups[group_value].append(row[0].getPart(0))
