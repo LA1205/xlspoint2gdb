@@ -19,6 +19,7 @@ print("Importing tables to gdb: " + outLocation)
 arcpy.TableToGeodatabase_conversion(tables, outLocation)
 
 # Gnerate a point feature class from x and y coordinate in table
+print("Start generating point feature...")
 arcpy.env.workspace = outLocation
 gdb_tableName = str(tables[0])[:-4] # obtain the name of table
 in_table = outLocation + "\\" + gdb_tableName
@@ -35,9 +36,10 @@ arcpy.management.XYTableToPoint(
     z_coords,
     arcpy.SpatialReference(wkid)
 )
-print("Importing done!")
+print("Point feature: " + out_feature_class + " has been generated!")
 
 # Generate polygon feature class from point feature class
+print("Start generating polygon feature from " + out_feature_class + "...")
 out_path = outLocation
 out_polygon_feature = out_feature_class + "2plygo"
 geometry_type = "POLYGON"
@@ -54,11 +56,11 @@ arcpy.CreateFeatureclass_management(
     has_z,
     spatial_ref
 )
-group_field = "groupfield" # <<<<<<set a field for grouping, may need replcaed by your own field name
+group_field = "groupfield" # <<<<<<set a field for grouping, may need replcaed with your own field name
 arcpy.AddField_management(
     out_polygon_feature, 
     group_field, 
-    "TEXT"
+    "LONG"
 )
 # Create a search cursor to obtain point feature 创建一个搜索游标来获取点要素
 in_point_feature = out_feature_class
@@ -84,3 +86,5 @@ with arcpy.da.InsertCursor(out_polygon_feature, ["SHAPE@", group_field]) as curs
         # 插入新的多边形要素，并设置组字段的值
         cursor.insertRow([polygon, group["field_value"]])
 print("Polygon feature: " + out_polygon_feature + " has been generated!")
+
+# Trim the 
