@@ -87,4 +87,4 @@ with arcpy.da.InsertCursor(out_polygon_feature, ["SHAPE@", group_field]) as curs
         cursor.insertRow([polygon, group["field_value"]])
 print("Polygon feature: " + out_polygon_feature + " has been generated!")
 
-# Trim the 
+# Generate a trimed table from the point feature to fit the table size of polygon feature
