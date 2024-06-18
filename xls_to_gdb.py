@@ -54,9 +54,14 @@ arcpy.CreateFeatureclass_management(
     has_z,
     spatial_ref
 )
-# Create a searchcursor to obtain point feature 创建一个搜索游标来获取点要素
-in_point_feature = out_feature_class
 group_field = "groupfield" # <<<<<<set a field for grouping, may need replcaed by your own field name
+arcpy.AddField_management(
+    out_polygon_feature, 
+    group_field, 
+    "TEXT"
+)
+# Create a search cursor to obtain point feature 创建一个搜索游标来获取点要素
+in_point_feature = out_feature_class
 with arcpy.da.SearchCursor(in_point_feature, ["SHAPE@", group_field]) as cursor:
     # Create a dictonary to store the point from each group 创建一个字典来存储每个组的点
     groups = {}
@@ -65,14 +70,17 @@ with arcpy.da.SearchCursor(in_point_feature, ["SHAPE@", group_field]) as cursor:
         group_value = row[1]
         # 如果该组还没有在字典中，则在字典中创建一个空列表
         if group_value not in groups:
-            groups[group_value] = []
+            groups[group_value] = {"points": [], "field_value": None}
         # 将点添加到该组的列表中
-        groups[group_value].append(row[0].getPart(0))
+        groups[group_value]["points"].append(row[0].getPart(0))
+        # 如果该组的字段值为空，则设置为当前点的字段值
+        if groups[group_value]["field_value"] is None:
+            groups[group_value]["field_value"] = group_value
 # 创建一个插入游标来创建多边形要素
-with arcpy.da.InsertCursor(out_polygon_feature, ["SHAPE@"]) as cursor:
+with arcpy.da.InsertCursor(out_polygon_feature, ["SHAPE@", group_field]) as cursor:
     for group in groups.values():
         # 创建一个多边形几何对象
-        polygon = arcpy.Polygon(arcpy.Array(group))
-        # 插入新的多边形要素
-        cursor.insertRow([polygon])
-print("Polygon feature : " + out_polygon_feature + " has been generated!")
+        polygon = arcpy.Polygon(arcpy.Array(group["points"]))
+        # 插入新的多边形要素，并设置组字段的值
+        cursor.insertRow([polygon, group["field_value"]])
+print("Polygon feature: " + out_polygon_feature + " has been generated!")
