@@ -87,4 +87,50 @@ with arcpy.da.InsertCursor(out_polygon_feature, ["SHAPE@", group_field]) as curs
         cursor.insertRow([polygon, group["field_value"]])
 print("Polygon feature: " + out_polygon_feature + " has been generated!")
 
-# Generate a trimed table from the point feature to fit the table size of polygon feature
+#Create a copy for the point feature class
+in_copy_feature = out_feature_class
+out_copy_feature = out_feature_class + "_copy"
+arcpy.CopyFeatures_management(
+    in_copy_feature, 
+    out_copy_feature
+)
+# Generate a trimed table from the point feature copy to fit the table size of polygon feature
+print("Starting " + out_feature_class + " attribute table triming...")
+in_trim_feature = out_copy_feature
+trim_group_field = group_field
+# create a dictionary to store the OID of the first point for each group
+trim_groups = {}
+# 创建一个搜索游标来获取点要素
+with arcpy.da.SearchCursor(in_trim_feature, ["OID@", trim_group_field]) as cursor:
+    for row in cursor:
+        # 获取组字段的值
+        group_value = row[1]
+        # 如果该组还没有在字典中，则将当前点的 OBJECTID 添加到字典中
+        if group_value not in trim_groups:
+            trim_groups[group_value] = row[0]
+# 创建一个删除游标来删除点要素
+with arcpy.da.UpdateCursor(in_trim_feature, ["OID@", trim_group_field]) as cursor:
+    for row in cursor:
+        # 获取组字段的值
+        group_value = row[1]
+        # 如果当前点的 OBJECTID 不在字典中，则删除该点
+        if row[0] != trim_groups[group_value]:
+            cursor.deleteRow()
+print("Trim done! New attribute table: " + out_copy_feature +" has been generated.")
+
+#Join the trimed attribute table to polygon feature
+print("Start updating attribute table of polygon feature.")
+in_join_feature = out_polygon_feature
+joinField = group_field
+joinTable = in_trim_feature
+fieldList = [
+    # <<<<<< Optional, You add the field name you only want join in the list
+]
+arcpy.management.JoinField(
+    in_join_feature, 
+    joinField, 
+    joinTable, 
+    joinField, 
+    fieldList
+)
+print("Attribute table of polygon feature has been updated.")
