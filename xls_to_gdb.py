@@ -124,7 +124,7 @@ in_join_feature = out_polygon_feature
 joinField = group_field
 joinTable = in_trim_feature
 fieldList = [
-    # <<<<<< Optional, You add the field name you only want join in the list
+    # <<<<<< Optional, you may add the field name you only want to join in this list
 ]
 arcpy.management.JoinField(
     in_join_feature, 
